@@ -4,7 +4,7 @@ from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai_tools import DirectoryReadTool, FileReadTool
 from typing import List
 
-REPO_DIR = r"C:\Users\wsqsy\Documents\cpp\tigr_test"
+REPO_DIR = r"/home/sophomore/code/cpp/tigr_t"
 
 
 @CrewBase
@@ -15,13 +15,24 @@ class MyFirstCrew:
     tasks: List[Task]
 
     @agent
+    def repo_analyst(self) -> Agent:
+        """Reads root docs and produces a bounded reading plan (no detailed code review)."""
+        return Agent(
+            config=self.agents_config["repo_analyst"],
+            tools=[
+                DirectoryReadTool(directory=REPO_DIR),
+                FileReadTool(),
+            ],
+            verbose=True,
+        )
+
+    @agent
     def code_reviewer(self) -> Agent:
+        """Performs the detailed review strictly following the reading plan."""
         return Agent(
             config=self.agents_config["code_reviewer"],
             tools=[
-                DirectoryReadTool(
-                    directory=REPO_DIR
-                ), 
+                DirectoryReadTool(directory=REPO_DIR),
                 FileReadTool(),
             ],
             verbose=True,
@@ -33,6 +44,22 @@ class MyFirstCrew:
             config=self.agents_config["json_generator"],
             tools=[],
             verbose=True,
+        )
+
+    @task
+    def repo_orientation_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["repo_orientation_task"],
+            agent=self.repo_analyst(),
+            output_file="project_brief.md",
+        )
+
+    @task
+    def context_selection_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["context_selection_task"],
+            agent=self.repo_analyst(),
+            output_file="reading_plan.json",
         )
 
     @task
